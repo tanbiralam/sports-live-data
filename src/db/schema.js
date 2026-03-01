@@ -1,11 +1,11 @@
 import {
-  integer,
-  jsonb,
-  pgEnum,
   pgTable,
   serial,
   text,
+  integer,
   timestamp,
+  pgEnum,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 export const matchStatusEnum = pgEnum("match_status", [
@@ -20,30 +20,26 @@ export const matches = pgTable("matches", {
   homeTeam: text("home_team").notNull(),
   awayTeam: text("away_team").notNull(),
   status: matchStatusEnum("status").notNull().default("scheduled"),
-  startTime: timestamp("start_time", { withTimezone: true }).notNull(),
-  endTime: timestamp("end_time", { withTimezone: true }),
+  startTime: timestamp("start_time"),
+  endTime: timestamp("end_time"),
   homeScore: integer("home_score").notNull().default(0),
   awayScore: integer("away_score").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const commentary = pgTable("commentary", {
   id: serial("id").primaryKey(),
   matchId: integer("match_id")
     .notNull()
-    .references(() => matches.id, { onDelete: "cascade" }),
-  minute: integer("minute").notNull(),
-  sequence: integer("sequence").notNull(),
+    .references(() => matches.id),
+  minute: integer("minute"),
+  sequence: integer("sequence"),
   period: text("period"),
-  eventType: text("event_type").notNull(),
+  eventType: text("event_type"),
   actor: text("actor"),
   team: text("team"),
   message: text("message").notNull(),
   metadata: jsonb("metadata"),
   tags: text("tags").array(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
