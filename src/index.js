@@ -1,51 +1,31 @@
-import { eq } from "drizzle-orm";
-import { db, pool } from "./db.js";
-import { demoUsers } from "./schema.js";
+import express from "express";
+import http from "http";
+import { matchRouter } from "./routes/matches.js";
+import { attachWebSocketServer } from "./ws/server.js";
 
-async function main() {
-  try {
-    console.log("Performing CRUD operations...");
+const PORT = Number(process.env.PORT) || 8000;
+const HOST = process.env.HOST || "0.0.0.0";
 
-    const [newUser] = await db
-      .insert(demoUsers)
-      .values({ name: "Admin User", email: "admin@example.com" })
-      .returning();
+const app = express();
+const server = http.createServer(app);
 
-    if (!newUser) {
-      throw new Error("Failed to create user");
-    }
+app.use(express.json());
 
-    console.log("CREATE: New user created:", newUser);
+app.get("/", (req, res) => {
+  res.send("Sports live data server is running");
+});
 
-    const foundUser = await db
-      .select()
-      .from(demoUsers)
-      .where(eq(demoUsers.id, newUser.id));
-    console.log("READ: Found user:", foundUser[0]);
+app.use("/matches", matchRouter);
 
-    const [updatedUser] = await db
-      .update(demoUsers)
-      .set({ name: "Super Admin" })
-      .where(eq(demoUsers.id, newUser.id))
-      .returning();
+const { broadcastMatchCreated } = attachWebSocketServer(server);
+app.locals.broadcastMatchCreated = broadcastMatchCreated;
 
-    if (!updatedUser) {
-      throw new Error("Failed to update user");
-    }
+server.listen(PORT, HOST, () => {
+  const baseUrl =
+    HOST === "0.0.0.0" ? `http://localhost:${PORT}` : `http://${HOST}:${PORT}`;
 
-    console.log("UPDATE: User updated:", updatedUser);
-
-    await db.delete(demoUsers).where(eq(demoUsers.id, newUser.id));
-    console.log("DELETE: User deleted.");
-
-    console.log("CRUD operations completed successfully.");
-  } catch (error) {
-    console.error("Error performing CRUD operations:", error);
-    process.exitCode = 1;
-  } finally {
-    await pool.end();
-    console.log("Database pool closed.");
-  }
-}
-
-main();
+  console.log(`Server running on ${baseUrl} `);
+  console.log(
+    `WebSocket endpoint available at ${baseUrl.replace("http", "ws")}/ws`
+  );
+});

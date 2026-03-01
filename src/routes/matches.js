@@ -65,6 +65,10 @@ matchRouter.post("/", async (req, res) => {
       })
       .returning();
 
+    if (typeof res.app.locals.broadcastMatchCreated === "function") {
+      res.app.locals.broadcastMatchCreated(event);
+    }
+
     res
       .status(201)
       .json({ message: "Match created successfully", data: event });
